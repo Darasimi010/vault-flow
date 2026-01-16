@@ -3,16 +3,19 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-    Bell,
     Search,
     ChevronRight,
+    LogOut,
 } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Button, Avatar } from "@/components/ui";
+import { Button, Avatar, Badge } from "@/components/ui";
 import { ThemeToggle } from "./theme-toggle";
 import { MobileNav } from "./mobile-nav";
-import { useSidebarStore, useUserStore } from "@/stores";
+import { useSidebarStore } from "@/stores";
+import { useAuth, RoleSwitcher } from "@/features/auth";
+import { NotificationBell } from "@/features/notifications";
+import { getRoleDisplayName } from "@/types/auth.types";
 import type { BreadcrumbItem } from "@/types";
 
 interface HeaderProps {
@@ -21,14 +24,23 @@ interface HeaderProps {
 
 export function Header({ breadcrumbs = [] }: HeaderProps) {
     const { isCollapsed } = useSidebarStore();
-    const { user } = useUserStore();
+    const { user, logout, isLoading } = useAuth();
 
-    // Demo user for UI display
-    const displayUser = user || {
-        fullName: "John Doe",
-        email: "john@vaultflow.com",
-        role: "admin" as const,
-    };
+    // Show loading skeleton
+    if (isLoading) {
+        return (
+            <header
+                className={cn(
+                    "sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur px-4 md:px-6 transition-all duration-300",
+                    isCollapsed ? "md:pl-[86px]" : "md:pl-[276px]"
+                )}
+            >
+                <div className="flex-1" />
+                <div className="h-8 w-24 bg-muted rounded animate-pulse" />
+                <div className="h-8 w-8 bg-muted rounded-full animate-pulse" />
+            </header>
+        );
+    }
 
     return (
         <header
@@ -48,7 +60,7 @@ export function Header({ breadcrumbs = [] }: HeaderProps) {
                 >
                     Home
                 </Link>
-                {breadcrumbs.map((crumb, index) => (
+                {breadcrumbs.map((crumb) => (
                     <React.Fragment key={crumb.label}>
                         <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
                         {crumb.href ? (
@@ -82,16 +94,13 @@ export function Header({ breadcrumbs = [] }: HeaderProps) {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+                {/* Role Switcher (Demo) */}
+                <RoleSwitcher />
+
                 <ThemeToggle />
 
                 {/* Notifications */}
-                <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-4 w-4" />
-                    <span className="absolute top-1 right-1 flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                    </span>
-                </Button>
+                <NotificationBell />
 
                 {/* User menu */}
                 <DropdownMenu.Root>
@@ -102,8 +111,8 @@ export function Header({ breadcrumbs = [] }: HeaderProps) {
                         >
                             <Avatar
                                 size="sm"
-                                fallback={displayUser.fullName || "User"}
-                                alt={displayUser.fullName || "User avatar"}
+                                fallback={user?.fullName || "User"}
+                                alt={user?.fullName || "User avatar"}
                             />
                         </Button>
                     </DropdownMenu.Trigger>
@@ -115,28 +124,35 @@ export function Header({ breadcrumbs = [] }: HeaderProps) {
                             sideOffset={8}
                         >
                             <div className="px-3 py-2 border-b border-border mb-1">
-                                <p className="text-sm font-medium">{displayUser.fullName}</p>
+                                <p className="text-sm font-medium">{user?.fullName}</p>
                                 <p className="text-xs text-muted-foreground">
-                                    {displayUser.email}
+                                    {user?.email}
                                 </p>
-                                <span className="inline-flex mt-1 items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize">
-                                    {displayUser.role}
-                                </span>
+                                {user && (
+                                    <Badge variant="outline" className="mt-1.5 text-xs capitalize">
+                                        {getRoleDisplayName(user.role)}
+                                    </Badge>
+                                )}
                             </div>
 
-                            <DropdownMenu.Item className="flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground">
-                                Profile
+                            <DropdownMenu.Item
+                                className="flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                            >
+                                <Link href="/dashboard/settings" className="flex-1">Profile</Link>
                             </DropdownMenu.Item>
-                            <DropdownMenu.Item className="flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground">
-                                Settings
-                            </DropdownMenu.Item>
-                            <DropdownMenu.Item className="flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground">
-                                Billing
+                            <DropdownMenu.Item
+                                className="flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                            >
+                                <Link href="/dashboard/settings" className="flex-1">Settings</Link>
                             </DropdownMenu.Item>
 
                             <DropdownMenu.Separator className="my-1 h-px bg-border" />
 
-                            <DropdownMenu.Item className="flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm text-destructive outline-none transition-colors hover:bg-destructive/10">
+                            <DropdownMenu.Item
+                                className="flex cursor-pointer select-none items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive outline-none transition-colors hover:bg-destructive/10"
+                                onClick={() => logout()}
+                            >
+                                <LogOut className="h-4 w-4" />
                                 Log out
                             </DropdownMenu.Item>
                         </DropdownMenu.Content>

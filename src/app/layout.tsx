@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, QueryProvider } from "@/components/providers";
+import { AuthProvider } from "@/features/auth";
+import { NotificationProvider, ToastProvider } from "@/features/notifications";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -37,7 +39,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider defaultTheme="system" storageKey="vaultflow-theme">
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <ToastProvider>{children}</ToastProvider>
+              </NotificationProvider>
+            </AuthProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>
